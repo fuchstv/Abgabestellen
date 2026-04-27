@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Abgabestellen Berlin</string>
+    <string name="map_view">Karte</string>
+    <string name="list_view">Liste</string>
+    <string name="profile_view">Profil</string>
+    <string name="login">Anmelden mit Google</string>
+    <string name="logout">Abmelden</string>
+    <string name="suggest_change">Änderung vorschlagen</string>
+    <string name="admin_panel">Mitarbeiter-Bereich</string>
+</resources>
