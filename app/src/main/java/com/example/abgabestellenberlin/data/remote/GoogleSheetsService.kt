@@ -7,11 +7,10 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.SheetsScopes
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.example.abgabestellenberlin.BuildConfig
 
 class GoogleSheetsService(private val context: Context) {
 
-    private val spreadsheetId = "1-hx7MWXHTsewBqTg1MqRZmbWeGTQHmLUEIRkPSg60l0"
-    private val apiKey = "AIzaSyBOUcHxAjEApgTywLfuVXH6a-mSrJAneWM"
 
     fun getPublicSheetsService(): Sheets {
         return Sheets.Builder(
@@ -36,8 +35,8 @@ class GoogleSheetsService(private val context: Context) {
     suspend fun fetchDropOffPoints(service: Sheets): List<List<Any>>? {
         val range = "Abgabestellen!A2:P" // Assuming headers are in row 1, Lat is O (14), Lon is P (15)
         val response = service.spreadsheets().values()
-            .get(spreadsheetId, range)
-            .setKey(apiKey)
+            .get(BuildConfig.SPREADSHEET_ID, range)
+            .setKey(BuildConfig.SHEETS_API_KEY)
             .execute()
         return response.getValues()
     }
@@ -48,7 +47,7 @@ class GoogleSheetsService(private val context: Context) {
         valueRange.setValues(listOf(values))
         
         service.spreadsheets().values()
-            .append(spreadsheetId, range, valueRange)
+            .append(BuildConfig.SPREADSHEET_ID, range, valueRange)
             .setValueInputOption("RAW")
             .execute()
     }
@@ -56,8 +55,8 @@ class GoogleSheetsService(private val context: Context) {
     suspend fun fetchCollaborators(service: Sheets): List<String> {
         val range = "Mitarbeiter!A:A"
         val response = service.spreadsheets().values()
-            .get(spreadsheetId, range)
-            .setKey(apiKey)
+            .get(BuildConfig.SPREADSHEET_ID, range)
+            .setKey(BuildConfig.SHEETS_API_KEY)
             .execute()
         return response.getValues()?.flatten()?.map { it.toString() } ?: emptyList()
     }
