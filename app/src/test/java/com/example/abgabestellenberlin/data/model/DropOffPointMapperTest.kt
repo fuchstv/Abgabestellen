@@ -7,6 +7,33 @@ import org.junit.Test
 class DropOffPointMapperTest {
 
     @Test
+    fun `fromSheetRow normal case`() {
+        val row = listOf(
+            "Test Point", "Test Address", "12345", "Test District", "Test Neighborhood",
+            "Test Contact", "123456789", "10:00-18:00", "Clothes, Toys", "No",
+            "High", "Some remarks", "example.com", "2023-11-01", "52.5200", "13.4050"
+        )
+        val result = DropOffPointMapper.fromSheetRow(row)
+
+        assertEquals("Test Point", result.name)
+        assertEquals("Test Address", result.address)
+        assertEquals("12345", result.zipCode)
+        assertEquals("Test District", result.district)
+        assertEquals("Test Neighborhood", result.neighborhood)
+        assertEquals("Test Contact", result.contactPerson)
+        assertEquals("123456789", result.phone)
+        assertEquals("10:00-18:00", result.dropOffTimes)
+        assertEquals("Clothes, Toys", result.acceptedItems)
+        assertEquals("No", result.phoneRegistrationRequired)
+        assertEquals("High", result.capacity)
+        assertEquals("Some remarks", result.remarks)
+        assertEquals("example.com", result.website)
+        assertEquals("2023-11-01", result.lastUpdated)
+        assertEquals(52.5200, result.latitude)
+        assertEquals(13.4050, result.longitude)
+    }
+
+    @Test
     fun `fromSheetRow with empty list returns DropOffPoint with default empty strings`() {
         val row = emptyList<Any>()
         val result = DropOffPointMapper.fromSheetRow(row)
