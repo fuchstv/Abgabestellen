@@ -65,6 +65,6 @@ class GoogleSheetsService(private val context: Context) {
             .get(BuildConfig.SPREADSHEET_ID, range)
             .setKey(BuildConfig.SHEETS_API_KEY)
             .execute()
-        return response.getValues()?.flatten()?.map { it.toString() } ?: emptyList()
+        return response.getValues()?.flatMap { row -> row.map { it.toString() } } ?: emptyList()
     }
 }
