@@ -64,6 +64,10 @@ android {
             excludes += "META-INF/ASL2.0"
         }
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
