@@ -38,8 +38,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         authManager = AuthManager(this)
-        
-        // Check for existing account
         viewModel.setUserAccount(authManager.getLastSignedInAccount())
 
         enableEdgeToEdge()
