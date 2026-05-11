@@ -7,4 +7,7 @@
     <string name="logout">Abmelden</string>
     <string name="suggest_change">Änderung vorschlagen</string>
     <string name="admin_panel">Mitarbeiter-Bereich</string>
+    <string name="what_do_you_want_to_change">Was möchtest du ändern?</string>
+    <string name="submit">Absenden</string>
+    <string name="cancel">Abbrechen</string>
 </resources>
