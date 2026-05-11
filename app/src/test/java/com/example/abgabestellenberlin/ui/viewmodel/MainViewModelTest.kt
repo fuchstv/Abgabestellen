@@ -13,6 +13,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.advanceUntilIdle
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import org.mockito.kotlin.any
 import org.junit.After
 import org.junit.Before
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,8 +35,10 @@ class MainViewModelTest {
     }
 
     @Test
-    fun testSetUserAccountNull() {
+    fun testSetUserAccountNull() = runTest(testDispatcher) {
         val repository = mock<DropOffRepository>()
+
+        whenever(repository.getDropOffPoints(null)).thenReturn(emptyList())
 
         // init block will call refreshData
         val viewModel = MainViewModel(repository)
@@ -44,8 +48,39 @@ class MainViewModelTest {
 
         viewModel.setUserAccount(null)
 
+        advanceUntilIdle()
+
         assertEquals(false, viewModel.isCollaborator.value)
         assertEquals(null, viewModel.userAccount.value)
+    }
+
+    @Test
+    fun testSetUserAccountNotNull() = runTest(testDispatcher) {
+        val repository = mock<DropOffRepository>()
+        val mockAccount = mock<GoogleSignInAccount>()
+        whenever(mockAccount.email).thenReturn("test@example.com")
+
+        val dummyPoint = mock<DropOffPoint>()
+        val mockList = listOf(dummyPoint)
+
+        whenever(repository.getDropOffPoints(null)).thenReturn(emptyList())
+        whenever(repository.getDropOffPoints(mockAccount)).thenReturn(mockList)
+        whenever(repository.getCollaborators(any())).thenReturn(listOf("test@example.com"))
+
+        val viewModel = MainViewModel(repository)
+
+        // Advance initial refreshData coroutine
+        advanceUntilIdle()
+
+        viewModel.setUserAccount(mockAccount)
+
+        // Advance setUserAccount coroutines
+        advanceUntilIdle()
+
+        assertEquals(mockAccount, viewModel.userAccount.value)
+        assertEquals(true, viewModel.isCollaborator.value)
+        // verify that refresh data was actually triggered and set the new points
+        assertEquals(mockList, viewModel.dropOffPoints.value)
     }
 
     @Test
