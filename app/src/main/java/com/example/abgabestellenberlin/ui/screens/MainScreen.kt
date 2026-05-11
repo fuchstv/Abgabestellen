@@ -147,23 +147,23 @@ fun SuggestionDialog(onDismiss: () -> Unit, onSubmit: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Änderung vorschlagen") },
+        title = { Text(stringResource(R.string.suggest_change)) },
         text = {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                label = { Text("Was möchtest du ändern?") },
+                label = { Text(stringResource(R.string.what_do_you_want_to_change)) },
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
             Button(onClick = { onSubmit(text) }) {
-                Text("Absenden")
+                Text(stringResource(R.string.submit))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
