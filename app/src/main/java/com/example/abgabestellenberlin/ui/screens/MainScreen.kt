@@ -181,10 +181,10 @@ fun PointDetailContent(point: DropOffPoint, onSuggestClick: () -> Unit) {
         Text(text = point.address, style = MaterialTheme.typography.bodyLarge)
         Text(text = "${point.zipCode} ${point.district}", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Öffnungszeiten:", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.opening_hours), style = MaterialTheme.typography.titleMedium)
         Text(text = point.dropOffTimes)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Was wird angenommen?:", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.accepted_items), style = MaterialTheme.typography.titleMedium)
         Text(text = point.acceptedItems)
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -254,7 +254,7 @@ fun ProfileScreen(viewModel: MainViewModel, onSignInClick: () -> Unit) {
                 Text(stringResource(R.string.login))
             }
         } else {
-            Text("Eingeloggt als: ${userAccount?.email}")
+            Text(stringResource(R.string.logged_in_as, userAccount?.email ?: ""))
             Button(onClick = { viewModel.setUserAccount(null) }) {
                 Text(stringResource(R.string.logout))
             }
@@ -264,5 +264,5 @@ fun ProfileScreen(viewModel: MainViewModel, onSignInClick: () -> Unit) {
 
 @Composable
 fun AdminScreen() {
-    Text("Admin Bereich")
+    Text(stringResource(R.string.admin_area))
 }
