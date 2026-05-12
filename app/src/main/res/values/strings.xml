@@ -11,7 +11,7 @@
     <string name="submit">Absenden</string>
     <string name="cancel">Abbrechen</string>
     <string name="opening_hours">Öffnungszeiten:</string>
-    <string name="accepted_items">Was wird angenommen?:</string>
+    <string name="accepted_items">Was wird angenommen?</string>
     <string name="logged_in_as">Eingeloggt als: %s</string>
     <string name="admin_area">Admin Bereich</string>
 </resources>
