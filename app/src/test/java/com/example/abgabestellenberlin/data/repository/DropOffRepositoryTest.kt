@@ -119,4 +119,13 @@ class DropOffRepositoryTest {
         assertEquals("user1@example.com", result[0])
         assertEquals("user2@example.com", result[1])
     }
+
+    @Test
+    fun testSubmitSuggestionSuccess() = runTest(testDispatcher) {
+        val mockValues = listOf<Any>("Suggestion 1", "Suggestion 2")
+
+        repository.submitSuggestion(mockSheets, mockValues)
+
+        org.mockito.kotlin.verify(sheetsService).submitSuggestion(mockSheets, mockValues)
+    }
 }
