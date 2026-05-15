@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "129086446729",
+    "project_id": "abgabestellen-berlin",
+    "storage_bucket": "abgabestellen-berlin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:129086446729:android:8d9b09a41d5f4bf5d5fa58",
+        "android_client_info": {
+          "package_name": "com.example.abgabestellenberlin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLkqUUTjbeQ2sM8_D_AAbZILgZdivBGE8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -39,7 +39,7 @@ fun MainScreen(
     val dropOffPoints by viewModel.dropOffPoints.collectAsState()
     val selectedPoint by viewModel.selectedPoint.collectAsState()
     val isCollaborator by viewModel.isCollaborator.collectAsState()
-    val userAccount by viewModel.userAccount.collectAsState()
+    val firebaseUser by viewModel.firebaseUser.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
@@ -119,7 +119,7 @@ fun MainScreen(
                 sheetState = sheetState
             ) {
                 PointDetailContent(selectedPoint!!) {
-                    if (userAccount == null) {
+                    if (firebaseUser == null) {
                         onSignInClick()
                     } else {
                         showSuggestionDialog = true
@@ -178,14 +178,14 @@ fun PointDetailContent(point: DropOffPoint, onSuggestClick: () -> Unit) {
     ) {
         Text(text = point.name, style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = point.address, style = MaterialTheme.typography.bodyLarge)
-        Text(text = "${point.zipCode} ${point.district}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = point.anschrift, style = MaterialTheme.typography.bodyLarge)
+        Text(text = "${point.plz} ${point.ortsteil}", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = stringResource(R.string.opening_hours), style = MaterialTheme.typography.titleMedium)
-        Text(text = point.dropOffTimes)
+        Text(text = point.annahmezeiten)
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = stringResource(R.string.accepted_items), style = MaterialTheme.typography.titleMedium)
-        Text(text = point.acceptedItems)
+        Text(text = point.akzeptiert)
         
         Spacer(modifier = Modifier.height(24.dp))
         
@@ -211,17 +211,15 @@ fun MapScreen(points: List<DropOffPoint>, onPointClick: (DropOffPoint) -> Unit) 
         cameraPositionState = cameraPositionState
     ) {
         points.forEach { point ->
-            if (point.latitude != null && point.longitude != null) {
-                Marker(
-                    state = MarkerState(position = LatLng(point.latitude, point.longitude)),
-                    title = point.name,
-                    snippet = point.address,
-                    onClick = {
-                        onPointClick(point)
-                        true
-                    }
-                )
-            }
+            Marker(
+                state = MarkerState(position = LatLng(point.latitude, point.longitude)),
+                title = point.name,
+                snippet = point.anschrift,
+                onClick = {
+                    onPointClick(point)
+                    true
+                }
+            )
         }
     }
 }
@@ -232,8 +230,8 @@ fun ListScreen(points: List<DropOffPoint>, onPointClick: (DropOffPoint) -> Unit)
         items(points) { point ->
             ListItem(
                 headlineContent = { Text(point.name) },
-                supportingContent = { Text(point.address) },
-                overlineContent = { Text(point.neighborhood) },
+                supportingContent = { Text(point.anschrift) },
+                overlineContent = { Text(point.ortsteil) },
                 modifier = Modifier.clickable { onPointClick(point) }
             )
             HorizontalDivider()
@@ -243,19 +241,19 @@ fun ListScreen(points: List<DropOffPoint>, onPointClick: (DropOffPoint) -> Unit)
 
 @Composable
 fun ProfileScreen(viewModel: MainViewModel, onSignInClick: () -> Unit) {
-    val userAccount by viewModel.userAccount.collectAsState()
+    val firebaseUser by viewModel.firebaseUser.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (userAccount == null) {
+        if (firebaseUser == null) {
             Button(onClick = onSignInClick) {
                 Text(stringResource(R.string.login))
             }
         } else {
-            Text(stringResource(R.string.logged_in_as, userAccount?.email ?: ""))
-            Button(onClick = { viewModel.setUserAccount(null) }) {
+            Text(stringResource(R.string.logged_in_as, firebaseUser?.email ?: ""))
+            Button(onClick = { viewModel.updateFirebaseUser(null) }) {
                 Text(stringResource(R.string.logout))
             }
         }

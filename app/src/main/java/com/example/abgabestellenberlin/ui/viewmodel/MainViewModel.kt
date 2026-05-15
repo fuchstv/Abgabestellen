@@ -4,7 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.abgabestellenberlin.data.model.DropOffPoint
 import com.example.abgabestellenberlin.data.repository.DropOffRepository
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -14,8 +15,8 @@ class MainViewModel(private val repository: DropOffRepository) : ViewModel() {
     private val _dropOffPoints = MutableStateFlow<List<DropOffPoint>>(emptyList())
     val dropOffPoints: StateFlow<List<DropOffPoint>> = _dropOffPoints
 
-    private val _userAccount = MutableStateFlow<GoogleSignInAccount?>(null)
-    val userAccount: StateFlow<GoogleSignInAccount?> = _userAccount
+    private val _firebaseUser = MutableStateFlow<FirebaseUser?>(FirebaseAuth.getInstance().currentUser)
+    val firebaseUser: StateFlow<FirebaseUser?> = _firebaseUser
 
     private val _isCollaborator = MutableStateFlow(false)
     val isCollaborator: StateFlow<Boolean> = _isCollaborator
@@ -28,51 +29,53 @@ class MainViewModel(private val repository: DropOffRepository) : ViewModel() {
 
     init {
         refreshData()
+        _firebaseUser.value?.let { checkCollaboratorStatus(it.email) }
     }
 
     fun selectPoint(point: DropOffPoint?) {
         _selectedPoint.value = point
     }
 
-    fun setUserAccount(account: GoogleSignInAccount?) {
-        _userAccount.value = account
-        if (account != null) {
-            refreshData()
-            checkCollaboratorStatus(account)
+    fun updateFirebaseUser(user: FirebaseUser?) {
+        _firebaseUser.value = user
+        if (user != null) {
+            checkCollaboratorStatus(user.email)
         } else {
             _isCollaborator.value = false
         }
     }
 
-    private fun checkCollaboratorStatus(account: GoogleSignInAccount) {
+    private fun checkCollaboratorStatus(email: String?) {
+        if (email == null) return
         viewModelScope.launch {
-            val collaborators = repository.getCollaborators(account)
-            _isCollaborator.value = collaborators.contains(account.email)
+            _isCollaborator.value = repository.isCollaborator(email)
         }
     }
 
     fun refreshData() {
         viewModelScope.launch {
             _errorMessage.value = null
-            val points = repository.getDropOffPoints(_userAccount.value)
+            val points = repository.getDropOffPoints()
             _dropOffPoints.value = points
             if (points.isEmpty()) {
-                _errorMessage.value = "Keine Daten gefunden. Bitte prüfe deine Internetverbindung oder API-Konfiguration."
+                _errorMessage.value = "Keine Daten gefunden. Bitte prüfe deine Internetverbindung."
             }
         }
     }
 
     fun submitSuggestion(point: DropOffPoint, suggestionText: String) {
         viewModelScope.launch {
-            val account = _userAccount.value ?: return@launch
-            val service = repository.getSheetsService(account)
-            repository.submitSuggestion(service, listOf(
-                point.name,
-                suggestionText,
-                account.email ?: "unknown",
-                System.currentTimeMillis().toString(),
-                "PENDING"
-            ))
+            val user = _firebaseUser.value ?: return@launch
+            try {
+                repository.submitSuggestion(
+                    pointId = point.id,
+                    name = point.name,
+                    suggestion = suggestionText,
+                    userEmail = user.email ?: "unknown"
+                )
+            } catch (e: Exception) {
+                _errorMessage.value = "Fehler beim Senden des Vorschlags."
+            }
         }
     }
 }

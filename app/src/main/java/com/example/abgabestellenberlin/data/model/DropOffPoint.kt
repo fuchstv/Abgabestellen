@@ -1,20 +1,17 @@
 package com.example.abgabestellenberlin.data.model
 
 data class DropOffPoint(
-    val name: String,
-    val address: String,
-    val zipCode: String,
-    val district: String,
-    val neighborhood: String,
-    val contactPerson: String,
-    val phone: String,
-    val dropOffTimes: String,
-    val acceptedItems: String,
-    val phoneRegistrationRequired: String,
-    val capacity: String,
-    val remarks: String,
-    val website: String,
-    val lastUpdated: String,
-    val latitude: Double? = null,
-    val longitude: Double? = null
+    val id: String = "", // Wird von Firestore generiert
+    val name: String = "",
+    val anschrift: String = "",
+    val plz: String = "",
+    val ortsteil: String = "",
+    val ansprechpartner: String = "",
+    val telefon: String = "",
+    val annahmezeiten: String = "",
+    val akzeptiert: String = "",
+    val anmeldungNoetig: Boolean = false,
+    val bemerkungen: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
 )
