@@ -1,6 +1,3 @@
-import java.util.Properties
-import java.io.FileInputStream
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -21,14 +18,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
-        val localProperties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localProperties.load(FileInputStream(localPropertiesFile))
-        }
-        buildConfigField("String", "SPREADSHEET_ID", "\"${localProperties.getProperty("SPREADSHEET_ID") ?: ""}\"")
-        buildConfigField("String", "SHEETS_API_KEY", "\"${localProperties.getProperty("SHEETS_API_KEY") ?: ""}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
