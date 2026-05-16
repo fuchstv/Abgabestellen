@@ -15,7 +15,7 @@ const mapsClient = new Client({});
 // Der Key kommt bei GitHub Actions nun aus den Secrets!
 const GOOGLE_MAPS_API_KEY = process.env.MAPS_API_KEY; 
 
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfdgEDSS9A-uChmLWRAgqdSAzC31eTl9bFGuKYcXQtyYOwVIArCI2ph4oUoMTK7sOHNoRNkajY4f0q/pub?output=csv';
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQDm_02PGznjHSfVb31ZLArm5Mb16UiIP5KkeMFojkAfU_9ggP5kxyyJfxGZF2DRNjZJwNUgxv7y2oT/pub?gid=0&single=true&output=csv';
 
 async function importData() {
   console.log('Lade Daten direkt aus Google Sheets herunter...');
