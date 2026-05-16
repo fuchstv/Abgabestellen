@@ -1,10 +1,10 @@
-const https = require('https');
+const axios = require('axios'); // <-- Neu: Axios für den sicheren Download
 const csv = require('csv-parser');
 const admin = require('firebase-admin');
 const { Client } = require('@googlemaps/google-maps-services-js');
 
 // 1. Firebase initialisieren
-const serviceAccount = require('./firebase-key.json'); // Dein heruntergeladener Schlüssel
+const serviceAccount = require('./firebase-key.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
@@ -12,43 +12,49 @@ const db = admin.firestore();
 
 // 2. Google Maps Client initialisieren
 const mapsClient = new Client({});
-// WICHTIG: Trage hier wieder deinen API-Key (in Anführungszeichen) ein!
+// Der Key kommt bei GitHub Actions nun aus den Secrets!
 const GOOGLE_MAPS_API_KEY = process.env.MAPS_API_KEY; 
 
-// Der direkte Link zu deiner Live-CSV aus Google Sheets
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfdgEDSS9A-uChmLWRAgqdSAzC31eTl9bFGuKYcXQtyYOwVIArCI2ph4oUoMTK7sOHNoRNkajY4f0q/pub?output=csv';
 
 async function importData() {
   console.log('Lade Daten direkt aus Google Sheets herunter...');
   const results = [];
   
-  // Lädt die Live-CSV direkt aus dem Google Sheet
-  https.get(SHEET_CSV_URL, (response) => {
-    response.pipe(csv())
+  try {
+    // Axios lädt die Datei herunter und folgt den Google-Umleitungen automatisch
+    const response = await axios({
+        method: 'get',
+        url: SHEET_CSV_URL,
+        responseType: 'stream'
+    });
+
+    response.data.pipe(csv())
       .on('data', (data) => results.push(data))
       .on('end', async () => {
         console.log(`${results.length} Zeilen aus Google Sheets geladen.`);
         
-        // --- NEU: Alte Einträge in Firebase löschen, um Duplikate zu vermeiden ---
+        if (results.length === 0) {
+            console.log('Abbruch: Es wurden keine Daten gefunden. Bitte den Link prüfen!');
+            return;
+        }
+
         console.log('Lösche veraltete Einträge aus Firebase...');
         const snapshot = await db.collection('abgabestellen').get();
-        // Wir löschen alle alten Dokumente parallel
         await Promise.all(snapshot.docs.map(doc => doc.ref.delete()));
         console.log('Datenbank geleert. Starte neuen Import...');
 
-        // --- Dein bisheriger Import- und Geocoding-Code ---
         for (const row of results) {
           const anschrift = row['Anschrift'];
           const plz = row['PLZ'];
           const name = row['Abgabestelle (schwarz:aktualisiert, rot:in Aktualisierung, lila: momentan außer Betrieb)'];
 
-          if (!anschrift || !name) continue; // Leere Zeilen überspringen
+          if (!anschrift || !name) continue;
 
           const fullAddress = `${anschrift}, ${plz} Berlin, Germany`;
           let lat = null, lng = null;
 
           try {
-            // Geocoding: Adresse -> Koordinaten
             const mapResponse = await mapsClient.geocode({
               params: {
                 address: fullAddress,
@@ -64,7 +70,6 @@ async function importData() {
             console.error(`Fehler beim Geocoding für ${fullAddress}:`, error.message);
           }
 
-          // Sauberes Datenobjekt für Firestore zusammenstellen
           const docData = {
              name: name,
              anschrift: anschrift,
@@ -90,8 +95,9 @@ async function importData() {
         
         console.log('Synchronisation erfolgreich abgeschlossen!');
       });
-  });
+  } catch (error) {
+      console.error("Fehler beim Herunterladen der CSV:", error.message);
+  }
 }
 
-// Führt die Funktion am Ende aus
 importData();
