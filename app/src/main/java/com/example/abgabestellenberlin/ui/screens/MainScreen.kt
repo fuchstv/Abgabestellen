@@ -7,12 +7,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -21,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.abgabestellenberlin.R
 import com.example.abgabestellenberlin.data.model.DropOffPoint
+import com.example.abgabestellenberlin.ui.utils.sendSuggestionEmail
 import com.example.abgabestellenberlin.ui.viewmodel.MainViewModel
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -32,20 +31,16 @@ import com.google.maps.android.compose.rememberCameraPositionState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    viewModel: MainViewModel = viewModel(),
-    onSignInClick: () -> Unit
+    viewModel: MainViewModel = viewModel()
 ) {
     val navController = rememberNavController()
     val dropOffPoints by viewModel.dropOffPoints.collectAsState()
     val selectedPoint by viewModel.selectedPoint.collectAsState()
-    val isCollaborator by viewModel.isCollaborator.collectAsState()
-    val firebaseUser by viewModel.firebaseUser.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
-    var showSuggestionDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.refreshData()
@@ -64,18 +59,12 @@ fun MainScreen(
     }
 
     var selectedItem by remember { mutableIntStateOf(0) }
-    val items = mutableListOf(
+    val items = listOf(
         stringResource(R.string.map_view),
-        stringResource(R.string.list_view),
-        stringResource(R.string.profile_view)
+        stringResource(R.string.list_view)
     )
-    val icons = mutableListOf(Icons.Filled.LocationOn, Icons.AutoMirrored.Filled.List, Icons.Filled.Person)
+    val icons = listOf(Icons.Filled.LocationOn, Icons.AutoMirrored.Filled.List)
     
-    if (isCollaborator) {
-        items.add(stringResource(R.string.admin_panel))
-        icons.add(Icons.Filled.Settings)
-    }
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -90,8 +79,6 @@ fun MainScreen(
                             when (index) {
                                 0 -> navController.navigate("map")
                                 1 -> navController.navigate("list")
-                                2 -> navController.navigate("profile")
-                                3 -> navController.navigate("admin")
                             }
                         }
                     )
@@ -106,8 +93,6 @@ fun MainScreen(
         ) {
             composable("map") { MapScreen(dropOffPoints) { viewModel.selectPoint(it) } }
             composable("list") { ListScreen(dropOffPoints) { viewModel.selectPoint(it) } }
-            composable("profile") { ProfileScreen(viewModel, onSignInClick) }
-            composable("admin") { AdminScreen() }
         }
 
         if (showBottomSheet && selectedPoint != null) {
@@ -118,59 +103,15 @@ fun MainScreen(
                 },
                 sheetState = sheetState
             ) {
-                PointDetailContent(selectedPoint!!) {
-                    if (firebaseUser == null) {
-                        onSignInClick()
-                    } else {
-                        showSuggestionDialog = true
-                        showBottomSheet = false
-                    }
-                }
+                PointDetailContent(selectedPoint!!)
             }
-        }
-
-        if (showSuggestionDialog && selectedPoint != null) {
-            SuggestionDialog(
-                onDismiss = { showSuggestionDialog = false },
-                onSubmit = { text ->
-                    viewModel.submitSuggestion(selectedPoint!!, text)
-                    showSuggestionDialog = false
-                    viewModel.selectPoint(null)
-                }
-            )
         }
     }
 }
 
 @Composable
-fun SuggestionDialog(onDismiss: () -> Unit, onSubmit: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.suggest_change)) },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text(stringResource(R.string.what_do_you_want_to_change)) },
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            Button(onClick = { onSubmit(text) }) {
-                Text(stringResource(R.string.submit))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        }
-    )
-}
-
-@Composable
-fun PointDetailContent(point: DropOffPoint, onSuggestClick: () -> Unit) {
+fun PointDetailContent(point: DropOffPoint) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -190,7 +131,7 @@ fun PointDetailContent(point: DropOffPoint, onSuggestClick: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
         
         Button(
-            onClick = onSuggestClick,
+            onClick = { sendSuggestionEmail(context, point.name) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.suggest_change))
@@ -237,30 +178,4 @@ fun ListScreen(points: List<DropOffPoint>, onPointClick: (DropOffPoint) -> Unit)
             HorizontalDivider()
         }
     }
-}
-
-@Composable
-fun ProfileScreen(viewModel: MainViewModel, onSignInClick: () -> Unit) {
-    val firebaseUser by viewModel.firebaseUser.collectAsState()
-
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (firebaseUser == null) {
-            Button(onClick = onSignInClick) {
-                Text(stringResource(R.string.login))
-            }
-        } else {
-            Text(stringResource(R.string.logged_in_as, firebaseUser?.email ?: ""))
-            Button(onClick = { viewModel.updateFirebaseUser(null) }) {
-                Text(stringResource(R.string.logout))
-            }
-        }
-    }
-}
-
-@Composable
-fun AdminScreen() {
-    Text(stringResource(R.string.admin_area))
 }

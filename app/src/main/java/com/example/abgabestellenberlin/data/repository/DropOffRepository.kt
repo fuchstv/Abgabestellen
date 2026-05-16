@@ -2,11 +2,9 @@ package com.example.abgabestellenberlin.data.repository
 
 import android.util.Log
 import com.example.abgabestellenberlin.data.model.DropOffPoint
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.tasks.await
 
 class DropOffRepository {
@@ -36,33 +34,6 @@ class DropOffRepository {
         } catch (e: Exception) {
             Log.e("DropOffRepository", "Error fetching points", e)
             emptyList()
-        }
-    }
-
-    suspend fun isCollaborator(email: String): Boolean {
-        return try {
-            val doc: DocumentSnapshot = db.collection("mitarbeiter").document(email).get().await()
-            doc.exists()
-        } catch (e: Exception) {
-            Log.e("DropOffRepository", "Error checking collaborator status", e)
-            false
-        }
-    }
-
-    suspend fun submitSuggestion(pointId: String, name: String, suggestion: String, userEmail: String) {
-        try {
-            val data = hashMapOf(
-                "pointId" to pointId,
-                "name" to name,
-                "suggestion" to suggestion,
-                "userEmail" to userEmail,
-                "timestamp" to Timestamp.now(),
-                "status" to "PENDING"
-            )
-            db.collection("vorschlaege").add(data).await()
-        } catch (e: Exception) {
-            Log.e("DropOffRepository", "Error submitting suggestion", e)
-            throw e
         }
     }
 }
