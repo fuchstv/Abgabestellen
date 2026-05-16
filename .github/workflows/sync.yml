@@ -1,1 +1,35 @@
+name: Foodsharing Auto-Sync
 
+on:
+  # Führt das Skript jeden Tag um 03:00 Uhr UTC (04:00 Uhr deutscher Zeit) aus
+  schedule:
+    - cron: '0 3 * * *'
+  
+  # Erlaubt dir, das Skript jederzeit manuell über einen Button in GitHub zu starten
+  workflow_dispatch: 
+
+jobs:
+  import-to-firebase:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Code aus dem Repository laden
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Firebase-Schlüssel aus Secret erstellen
+        run: |
+          echo '${{ secrets.FIREBASE_KEY_JSON }}' > firebase-key.json
+
+      - name: Abhängigkeiten installieren
+        run: npm install firebase-admin csv-parser @googlemaps/google-maps-services-js
+
+      - name: Import-Skript ausführen
+        env:
+          # Übergibt den Maps-Key aus den Secrets an das Skript
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }} 
+        run: node import.js
