@@ -41,7 +41,28 @@ async function importData() {
 
         console.log('Lösche veraltete Einträge aus Firebase...');
         const snapshot = await db.collection('abgabestellen').get();
-        await Promise.all(snapshot.docs.map(doc => doc.ref.delete()));
+
+        // Optimierte Löschung mit Batches (max 500 Operationen pro Batch)
+        const batches = [];
+        let currentBatch = db.batch();
+        let operationCount = 0;
+
+        for (const doc of snapshot.docs) {
+            currentBatch.delete(doc.ref);
+            operationCount++;
+
+            if (operationCount === 500) {
+                batches.push(currentBatch.commit());
+                currentBatch = db.batch();
+                operationCount = 0;
+            }
+        }
+
+        if (operationCount > 0) {
+            batches.push(currentBatch.commit());
+        }
+
+        await Promise.all(batches);
         console.log('Datenbank geleert. Starte neuen Import...');
 
         for (const row of results) {
