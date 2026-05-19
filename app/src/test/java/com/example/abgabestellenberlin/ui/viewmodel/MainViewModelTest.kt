@@ -46,4 +46,24 @@ class MainViewModelTest {
         assertEquals("Keine Daten gefunden. Bitte prüfe deine Internetverbindung.", viewModel.errorMessage.value)
         assertEquals(emptyList<DropOffPoint>(), viewModel.dropOffPoints.value)
     }
+
+    @Test
+    fun `selectPoint updates selectedPoint StateFlow`() = runTest {
+        // Arrange
+        whenever(mockRepository.getDropOffPoints()).thenReturn(emptyList())
+        viewModel = MainViewModel(mockRepository)
+        val testPoint = DropOffPoint(id = "test-id", name = "Test Point")
+
+        // Act
+        viewModel.selectPoint(testPoint)
+
+        // Assert
+        assertEquals(testPoint, viewModel.selectedPoint.value)
+
+        // Act (Set to null)
+        viewModel.selectPoint(null)
+
+        // Assert
+        assertEquals(null, viewModel.selectedPoint.value)
+    }
 }
