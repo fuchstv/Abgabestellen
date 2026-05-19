@@ -1,8 +1,0 @@
-💡 **What:** Replaced sequential row processing and individual Firestore `.add()` writes with a `p-limit` concurrency pool for Geocoding API requests and Firestore batched writes. The `.github/workflows/sync.yml` file was updated to install the `p-limit` dependency.
-
-🎯 **Why:** The previous code had a sequential loop that added an artificial 200ms delay to each row, slowing down the script significantly. Batching Firestore writes and executing network requests concurrently makes better use of resources while still respecting rate limits (the concurrency pool handles max simultaneous requests).
-
-📊 **Measured Improvement:** In a mocked benchmark for 50 rows of data (representing Firebase and Google Maps Geocoding API network latency):
-- **Baseline Sequential Approach:** ~15.06s (15066ms)
-- **Optimized Batched & Concurrent Approach:** ~0.61s (616ms)
-- **Speedup:** ~24x faster execution time.
