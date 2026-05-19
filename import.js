@@ -1,4 +1,5 @@
 const axios = require('axios'); // <-- Neu: Axios für den sicheren Download
+const pLimit = require('p-limit'); // Concurrency pool
 const csv = require('csv-parser');
 const admin = require('firebase-admin');
 const { Client } = require('@googlemaps/google-maps-services-js');
@@ -65,55 +66,79 @@ async function importData() {
         await Promise.all(batches);
         console.log('Datenbank geleert. Starte neuen Import...');
 
-        for (const row of results) {
-          const anschrift = row['Anschrift'];
-          const plz = row['PLZ'];
-          const name = row['Abgabestelle (schwarz:aktualisiert, rot:in Aktualisierung, lila: momentan außer Betrieb)'];
+        const limit = pLimit(10); // Concurrency pool of 10 for Geocoding API limits
+        let importBatch = db.batch();
+        let importOperationCount = 0;
+        const importBatches = [];
 
-          if (!anschrift || !name) continue;
+        const promises = results.map((row) => limit(async () => {
+            const anschrift = row['Anschrift'];
+            const plz = row['PLZ'];
+            const name = row['Abgabestelle (schwarz:aktualisiert, rot:in Aktualisierung, lila: momentan außer Betrieb)'];
 
-          const fullAddress = `${anschrift}, ${plz} Berlin, Germany`;
-          let lat = null, lng = null;
+            if (!anschrift || !name) return null;
 
-          try {
-            const mapResponse = await mapsClient.geocode({
-              params: {
-                address: fullAddress,
-                key: GOOGLE_MAPS_API_KEY,
+            const fullAddress = `${anschrift}, ${plz} Berlin, Germany`;
+            let lat = null, lng = null;
+
+            try {
+              const mapResponse = await mapsClient.geocode({
+                params: {
+                  address: fullAddress,
+                  key: GOOGLE_MAPS_API_KEY,
+                }
+              });
+
+              if (mapResponse.data.results.length > 0) {
+                lat = mapResponse.data.results[0].geometry.location.lat;
+                lng = mapResponse.data.results[0].geometry.location.lng;
               }
-            });
-            
-            if (mapResponse.data.results.length > 0) {
-              lat = mapResponse.data.results[0].geometry.location.lat;
-              lng = mapResponse.data.results[0].geometry.location.lng;
+            } catch (error) {
+              console.error(`Fehler beim Geocoding für ${fullAddress}:`, error.message);
             }
-          } catch (error) {
-            console.error(`Fehler beim Geocoding für ${fullAddress}:`, error.message);
+
+            const docData = {
+               name: name,
+               anschrift: anschrift,
+               plz: plz,
+               ortsteil: row['Ortsteil'] || '',
+               ansprechpartner: row['AnsprechpartnerIn'] || '',
+               telefon: row['Telefon'] || row['Telefon / Mail'] || '',
+               annahmezeiten: row['Wann können Lebensmittel abgegeben werden?'] || '',
+               akzeptiert: row['Was wird angenommen?'] || '',
+               anmeldung_noetig: (row['vorherige telefon. Anmeldung nötig?'] === 'TRUE' || row['Anmeldung erforderlich?'] === 'TRUE'),
+               bemerkungen: row['Bemerkungen'] || '',
+            };
+
+            if (lat && lng) {
+                docData.location = new admin.firestore.GeoPoint(lat, lng);
+            }
+
+            return { name, docData };
+        }));
+
+        const resolvedDocs = await Promise.all(promises);
+
+        for (const item of resolvedDocs) {
+          if (!item) continue;
+
+          const docRef = db.collection('abgabestellen').doc();
+          importBatch.set(docRef, item.docData);
+          importOperationCount++;
+          console.log(`Verarbeitet: ${item.name}`);
+
+          if (importOperationCount === 500) {
+              importBatches.push(importBatch.commit());
+              importBatch = db.batch();
+              importOperationCount = 0;
           }
-
-          const docData = {
-             name: name,
-             anschrift: anschrift,
-             plz: plz,
-             ortsteil: row['Ortsteil'] || '',
-             ansprechpartner: row['AnsprechpartnerIn'] || '',
-             telefon: row['Telefon'] || row['Telefon / Mail'] || '',
-             annahmezeiten: row['Wann können Lebensmittel abgegeben werden?'] || '',
-             akzeptiert: row['Was wird angenommen?'] || '',
-             anmeldung_noetig: (row['vorherige telefon. Anmeldung nötig?'] === 'TRUE' || row['Anmeldung erforderlich?'] === 'TRUE'),
-             bemerkungen: row['Bemerkungen'] || '',
-          };
-
-          if (lat && lng) {
-              docData.location = new admin.firestore.GeoPoint(lat, lng);
-          }
-
-          await db.collection('abgabestellen').add(docData);
-          console.log(`Importiert: ${name}`);
-          
-          await new Promise(resolve => setTimeout(resolve, 200)); 
         }
-        
+
+        if (importOperationCount > 0) {
+            importBatches.push(importBatch.commit());
+        }
+
+        await Promise.all(importBatches);
         console.log('Synchronisation erfolgreich abgeschlossen!');
       });
   } catch (error) {

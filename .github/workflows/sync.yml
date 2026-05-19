@@ -26,7 +26,7 @@ jobs:
           echo '${{ secrets.FIREBASE_KEY_JSON }}' > firebase-key.json
 
       - name: Abhängigkeiten installieren
-        run: npm install firebase-admin csv-parser @googlemaps/google-maps-services-js axios
+        run: npm install firebase-admin csv-parser @googlemaps/google-maps-services-js axios p-limit@3
 
       - name: Import-Skript ausführen
         env:
