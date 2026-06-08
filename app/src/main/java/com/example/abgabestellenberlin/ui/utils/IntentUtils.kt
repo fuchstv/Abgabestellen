@@ -4,9 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import com.example.abgabestellenberlin.R
 
 fun sendSuggestionEmail(context: Context, dropOffPointName: String) {
-    val emailAddress = "abgabestellen.berlin@foodsharing.network"
+    val emailAddress = context.getString(R.string.contact_email)
     val subject = "Änderungsvorschlag für Abgabestelle: $dropOffPointName"
     val body = "Hallo liebes Team,\n\nich habe folgende Ergänzung/Korrektur für die Abgabestelle '$dropOffPointName':\n\n"
 
