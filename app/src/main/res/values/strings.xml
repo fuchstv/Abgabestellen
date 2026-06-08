@@ -15,4 +15,5 @@
     <string name="logged_in_as">Eingeloggt als: %s</string>
     <string name="admin_area">Admin Bereich</string>
     <string name="default_web_client_id">343890878780-b7s3g3clhjcgcs5rpn2ukagkb4h8a0an.apps.googleusercontent.com</string>
+    <string name="contact_email">abgabestellen.berlin@foodsharing.network</string>
 </resources>
