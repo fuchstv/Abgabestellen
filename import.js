@@ -20,9 +20,10 @@ const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQDm_02PG
 
 async function importData() {
   console.log('Lade Daten direkt aus Google Sheets herunter...');
-  const results = [];
   
   try {
+    const results = [];
+    
     // Axios lädt die Datei herunter und folgt den Google-Umleitungen automatisch
     const response = await axios({
         method: 'get',
@@ -30,119 +31,132 @@ async function importData() {
         responseType: 'stream'
     });
 
-    response.data.pipe(csv())
-      .on('data', (data) => results.push(data))
-      .on('end', async () => {
-        console.log(`${results.length} Zeilen aus Google Sheets geladen.`);
-        
-        if (results.length === 0) {
-            console.log('Abbruch: Es wurden keine Daten gefunden. Bitte den Link prüfen!');
-            return;
-        }
-
-        console.log('Lösche veraltete Einträge aus Firebase...');
-        const snapshot = await db.collection('abgabestellen').get();
-
-        // Optimierte Löschung mit Batches (max 500 Operationen pro Batch)
-        const batches = [];
-        let currentBatch = db.batch();
-        let operationCount = 0;
-
-        for (const doc of snapshot.docs) {
-            currentBatch.delete(doc.ref);
-            operationCount++;
-
-            if (operationCount === 500) {
-                batches.push(currentBatch.commit());
-                currentBatch = db.batch();
-                operationCount = 0;
+    // Wrap the stream in a Promise to ensure proper async handling
+    await new Promise((resolve, reject) => {
+      response.data.pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', async () => {
+          try {
+            console.log(`${results.length} Zeilen aus Google Sheets geladen.`);
+            
+            if (results.length === 0) {
+                console.log('Abbruch: Es wurden keine Daten gefunden. Bitte den Link prüfen!');
+                resolve();
+                return;
             }
-        }
 
-        if (operationCount > 0) {
-            batches.push(currentBatch.commit());
-        }
+            console.log('Lösche veraltete Einträge aus Firebase...');
+            const snapshot = await db.collection('abgabestellen').get();
 
-        await Promise.all(batches);
-        console.log('Datenbank geleert. Starte neuen Import...');
+            // Optimierte Löschung mit Batches (max 500 Operationen pro Batch)
+            const batches = [];
+            let currentBatch = db.batch();
+            let operationCount = 0;
 
-        const limit = pLimit(10); // Concurrency pool of 10 for Geocoding API limits
-        let importBatch = db.batch();
-        let importOperationCount = 0;
-        const importBatches = [];
+            for (const doc of snapshot.docs) {
+                currentBatch.delete(doc.ref);
+                operationCount++;
 
-        const promises = results.map((row) => limit(async () => {
-            const anschrift = row['Anschrift'];
-            const plz = row['PLZ'];
-            const name = row['Abgabestelle (schwarz:aktualisiert, rot:in Aktualisierung, lila: momentan außer Betrieb)'];
-
-            if (!anschrift || !name) return null;
-
-            const fullAddress = `${anschrift}, ${plz} Berlin, Germany`;
-            let lat = null, lng = null;
-
-            try {
-              const mapResponse = await mapsClient.geocode({
-                params: {
-                  address: fullAddress,
-                  key: GOOGLE_MAPS_API_KEY,
+                if (operationCount === 500) {
+                    batches.push(currentBatch.commit());
+                    currentBatch = db.batch();
+                    operationCount = 0;
                 }
-              });
+            }
 
-              if (mapResponse.data.results.length > 0) {
-                lat = mapResponse.data.results[0].geometry.location.lat;
-                lng = mapResponse.data.results[0].geometry.location.lng;
+            if (operationCount > 0) {
+                batches.push(currentBatch.commit());
+            }
+
+            await Promise.all(batches);
+            console.log('Datenbank geleert. Starte neuen Import...');
+
+            const limit = pLimit(10); // Concurrency pool of 10 for Geocoding API limits
+            let importBatch = db.batch();
+            let importOperationCount = 0;
+            const importBatches = [];
+
+            const promises = results.map((row) => limit(async () => {
+                const anschrift = row['Anschrift'];
+                const plz = row['PLZ'];
+                const name = row['Abgabestelle (schwarz:aktualisiert, rot:in Aktualisierung, lila: momentan außer Betrieb)'];
+
+                if (!anschrift || !name) return null;
+
+                const fullAddress = `${anschrift}, ${plz} Berlin, Germany`;
+                let lat = null, lng = null;
+
+                try {
+                  const mapResponse = await mapsClient.geocode({
+                    params: {
+                      address: fullAddress,
+                      key: GOOGLE_MAPS_API_KEY,
+                    }
+                  });
+
+                  if (mapResponse.data.results.length > 0) {
+                    lat = mapResponse.data.results[0].geometry.location.lat;
+                    lng = mapResponse.data.results[0].geometry.location.lng;
+                  }
+                } catch (error) {
+                  console.error(`Fehler beim Geocoding für ${fullAddress}:`, error.message);
+                }
+
+                const docData = {
+                   name: name,
+                   anschrift: anschrift,
+                   plz: plz,
+                   ortsteil: row['Ortsteil'] || '',
+                   ansprechpartner: row['AnsprechpartnerIn'] || '',
+                   telefon: row['Telefon'] || row['Telefon / Mail'] || '',
+                   annahmezeiten: row['Wann können Lebensmittel abgegeben werden?'] || '',
+                   akzeptiert: row['Was wird angenommen?'] || '',
+                   anmeldung_noetig: (row['vorherige telefon. Anmeldung nötig?'] === 'TRUE' || row['Anmeldung erforderlich?'] === 'TRUE'),
+                   bemerkungen: row['Bemerkungen'] || '',
+                };
+
+                if (lat && lng) {
+                    docData.location = new admin.firestore.GeoPoint(lat, lng);
+                }
+
+                return { name, docData };
+            }));
+
+            const resolvedDocs = await Promise.all(promises);
+
+            for (const item of resolvedDocs) {
+              if (!item) continue;
+
+              const docRef = db.collection('abgabestellen').doc();
+              importBatch.set(docRef, item.docData);
+              importOperationCount++;
+              console.log(`Verarbeitet: ${item.name}`);
+
+              if (importOperationCount === 500) {
+                  importBatches.push(importBatch.commit());
+                  importBatch = db.batch();
+                  importOperationCount = 0;
               }
-            } catch (error) {
-              console.error(`Fehler beim Geocoding für ${fullAddress}:`, error.message);
             }
 
-            const docData = {
-               name: name,
-               anschrift: anschrift,
-               plz: plz,
-               ortsteil: row['Ortsteil'] || '',
-               ansprechpartner: row['AnsprechpartnerIn'] || '',
-               telefon: row['Telefon'] || row['Telefon / Mail'] || '',
-               annahmezeiten: row['Wann können Lebensmittel abgegeben werden?'] || '',
-               akzeptiert: row['Was wird angenommen?'] || '',
-               anmeldung_noetig: (row['vorherige telefon. Anmeldung nötig?'] === 'TRUE' || row['Anmeldung erforderlich?'] === 'TRUE'),
-               bemerkungen: row['Bemerkungen'] || '',
-            };
-
-            if (lat && lng) {
-                docData.location = new admin.firestore.GeoPoint(lat, lng);
+            if (importOperationCount > 0) {
+                importBatches.push(importBatch.commit());
             }
 
-            return { name, docData };
-        }));
-
-        const resolvedDocs = await Promise.all(promises);
-
-        for (const item of resolvedDocs) {
-          if (!item) continue;
-
-          const docRef = db.collection('abgabestellen').doc();
-          importBatch.set(docRef, item.docData);
-          importOperationCount++;
-          console.log(`Verarbeitet: ${item.name}`);
-
-          if (importOperationCount === 500) {
-              importBatches.push(importBatch.commit());
-              importBatch = db.batch();
-              importOperationCount = 0;
+            await Promise.all(importBatches);
+            console.log('Synchronisation erfolgreich abgeschlossen!');
+            resolve();
+          } catch (error) {
+            reject(error);
           }
-        }
-
-        if (importOperationCount > 0) {
-            importBatches.push(importBatch.commit());
-        }
-
-        await Promise.all(importBatches);
-        console.log('Synchronisation erfolgreich abgeschlossen!');
-      });
+        })
+        .on('error', (error) => {
+          reject(error);
+        });
+    });
   } catch (error) {
       console.error("Fehler beim Herunterladen der CSV:", error.message);
+      process.exit(1);
   }
 }
 
