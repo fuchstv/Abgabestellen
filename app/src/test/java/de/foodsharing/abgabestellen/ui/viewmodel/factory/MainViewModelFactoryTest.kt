@@ -1,8 +1,8 @@
-package com.example.abgabestellenberlin.ui.viewmodel.factory
+package de.foodsharing.abgabestellen.ui.viewmodel.factory
 
 import androidx.lifecycle.ViewModel
-import com.example.abgabestellenberlin.data.repository.DropOffRepository
-import com.example.abgabestellenberlin.ui.viewmodel.MainViewModel
+import de.foodsharing.abgabestellen.data.repository.DropOffRepository
+import de.foodsharing.abgabestellen.ui.viewmodel.MainViewModel
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.mockito.Mockito.mock
