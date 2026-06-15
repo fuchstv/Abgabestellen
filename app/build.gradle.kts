@@ -15,7 +15,7 @@ if (localPropertiesFile.exists()) {
 val mapsApiKey = localProperties.getProperty("MAPS_API_KEY") ?: ""
 
 android {
-    namespace = "com.example.abgabestellenberlin"
+    namespace = "de.foodsharing.abgabestellen"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -23,7 +23,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.abgabestellenberlin"
+        applicationId = "de.foodsharing.abgabestellen"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

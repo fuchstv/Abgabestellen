@@ -1,15 +1,27 @@
 const axios = require('axios'); // <-- Neu: Axios für den sicheren Download
 const pLimit = require('p-limit'); // Concurrency pool
 const csv = require('csv-parser');
-const admin = require('firebase-admin');
+const { initializeApp, cert, applicationDefault } = require('firebase-admin/app');
+const { getFirestore, GeoPoint } = require('firebase-admin/firestore');
 const { Client } = require('@googlemaps/google-maps-services-js');
+const fs = require('fs');
+const path = require('path');
 
 // 1. Firebase initialisieren
-const serviceAccount = require('./firebase-key.json');
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-const db = admin.firestore();
+let firebaseConfig = {};
+const keyPath = path.join(__dirname, 'firebase-key.json');
+
+if (fs.existsSync(keyPath)) {
+  const serviceAccount = require(keyPath);
+  firebaseConfig.credential = cert(serviceAccount);
+} else {
+  console.log('Keine firebase-key.json gefunden. Verwende Application Default Credentials...');
+  firebaseConfig.credential = applicationDefault();
+  firebaseConfig.projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || 'abgabestellen-berlin';
+}
+
+initializeApp(firebaseConfig);
+const db = getFirestore();
 
 // 2. Google Maps Client initialisieren
 const mapsClient = new Client({});
@@ -116,7 +128,7 @@ async function importData() {
                 };
 
                 if (lat && lng) {
-                    docData.location = new admin.firestore.GeoPoint(lat, lng);
+                    docData.location = new GeoPoint(lat, lng);
                 }
 
                 return { name, docData };
