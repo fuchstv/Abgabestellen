@@ -1,7 +1,7 @@
-package com.example.abgabestellenberlin.ui.viewmodel
+package de.foodsharing.abgabestellen.ui.viewmodel
 
-import com.example.abgabestellenberlin.data.model.DropOffPoint
-import com.example.abgabestellenberlin.data.repository.DropOffRepository
+import de.foodsharing.abgabestellen.data.model.DropOffPoint
+import de.foodsharing.abgabestellen.data.repository.DropOffRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -44,6 +44,24 @@ class MainViewModelTest {
         // Assert
         assertEquals("Keine Daten gefunden. Bitte prüfe deine Internetverbindung.", viewModel.errorMessage.value)
         assertEquals(emptyList<DropOffPoint>(), viewModel.dropOffPoints.value)
+    }
+
+    @Test
+    fun `refreshData with non-empty list updates dropOffPoints and sets errorMessage to null`() = runTest {
+        // Arrange
+        val points = listOf(
+            DropOffPoint(id = "1", name = "Point 1"),
+            DropOffPoint(id = "2", name = "Point 2")
+        )
+        whenever(mockRepository.getDropOffPoints()).thenReturn(points)
+
+        // Act
+        viewModel = MainViewModel(mockRepository)
+        viewModel.refreshData()
+
+        // Assert
+        assertEquals(null, viewModel.errorMessage.value)
+        assertEquals(points, viewModel.dropOffPoints.value)
     }
 
     @Test
