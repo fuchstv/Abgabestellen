@@ -168,7 +168,7 @@ fun MapScreen(points: List<DropOffPoint>, onPointClick: (DropOffPoint) -> Unit) 
 @Composable
 fun ListScreen(points: List<DropOffPoint>, onPointClick: (DropOffPoint) -> Unit) {
     LazyColumn {
-        items(points) { point ->
+        items(points, key = { it.id }) { point ->
             ListItem(
                 headlineContent = { Text(point.name) },
                 supportingContent = { Text(point.anschrift) },
