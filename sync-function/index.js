@@ -157,7 +157,7 @@ functions.http('importDataHttp', async (req, res) => {
   const authHeader = req.headers.authorization;
   const secretToken = process.env.SCHEDULER_SECRET_TOKEN;
   
-  if (secretToken && authHeader !== `Bearer ${secretToken}`) {
+  if (!secretToken || authHeader !== `Bearer ${secretToken}`) {
     console.warn('Unauthorized trigger attempt.');
     return res.status(401).send('Unauthorized');
   }
