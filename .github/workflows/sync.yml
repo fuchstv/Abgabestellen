@@ -22,8 +22,10 @@ jobs:
           node-version: '24'
 
       - name: Firebase-Schlüssel aus Secret erstellen
+        env:
+          FIREBASE_KEY_JSON: ${{ secrets.FIREBASE_KEY_JSON }}
         run: |
-          echo '${{ secrets.FIREBASE_KEY_JSON }}' > firebase-key.json
+          echo "$FIREBASE_KEY_JSON" > firebase-key.json
 
       - name: Abhängigkeiten installieren
         run: npm install firebase-admin csv-parser @googlemaps/google-maps-services-js axios p-limit@3
