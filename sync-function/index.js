@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, GeoPoint } = require('firebase-admin/firestore');
 const { Client } = require('@googlemaps/google-maps-services-js');
@@ -157,7 +158,18 @@ functions.http('importDataHttp', async (req, res) => {
   const authHeader = req.headers.authorization;
   const secretToken = process.env.SCHEDULER_SECRET_TOKEN;
   
-  if (!secretToken || authHeader !== `Bearer ${secretToken}`) {
+  if (!secretToken || !authHeader) {
+    console.warn('Unauthorized trigger attempt.');
+    return res.status(401).send('Unauthorized');
+  }
+
+  const expectedHeader = `Bearer ${secretToken}`;
+
+  const authHeaderBuf = Buffer.from(authHeader);
+  const expectedHeaderBuf = Buffer.from(expectedHeader);
+
+  if (authHeaderBuf.length !== expectedHeaderBuf.length ||
+      !crypto.timingSafeEqual(authHeaderBuf, expectedHeaderBuf)) {
     console.warn('Unauthorized trigger attempt.');
     return res.status(401).send('Unauthorized');
   }
