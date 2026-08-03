@@ -165,11 +165,10 @@ functions.http('importDataHttp', async (req, res) => {
 
   const expectedHeader = `Bearer ${secretToken}`;
 
-  const authHeaderBuf = Buffer.from(authHeader);
-  const expectedHeaderBuf = Buffer.from(expectedHeader);
+  const authHeaderHash = crypto.createHash('sha256').update(authHeader).digest();
+  const expectedHeaderHash = crypto.createHash('sha256').update(expectedHeader).digest();
 
-  if (authHeaderBuf.length !== expectedHeaderBuf.length ||
-      !crypto.timingSafeEqual(authHeaderBuf, expectedHeaderBuf)) {
+  if (!crypto.timingSafeEqual(authHeaderHash, expectedHeaderHash)) {
     console.warn('Unauthorized trigger attempt.');
     return res.status(401).send('Unauthorized');
   }
