@@ -6,6 +6,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.DocumentSnapshot
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CancellationException
 
 class DropOffRepository {
     private val db = FirebaseFirestore.getInstance()
@@ -31,6 +32,8 @@ class DropOffRepository {
                     longitude = location?.longitude ?: 0.0
                 )
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("DropOffRepository", "Error fetching points", e)
             emptyList()
