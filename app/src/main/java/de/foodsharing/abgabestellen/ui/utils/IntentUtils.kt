@@ -1,5 +1,6 @@
 package de.foodsharing.abgabestellen.ui.utils
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -20,7 +21,7 @@ fun sendSuggestionEmail(context: Context, dropOffPointName: String) {
 
     try {
         context.startActivity(intent)
-    } catch (e: Exception) {
+    } catch (e: ActivityNotFoundException) {
         // Fallback, falls der Nutzer gar keine E-Mail-App installiert hat
         Toast.makeText(context, "Keine E-Mail-App gefunden.", Toast.LENGTH_LONG).show()
     }
