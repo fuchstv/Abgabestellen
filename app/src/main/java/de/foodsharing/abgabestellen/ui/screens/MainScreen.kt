@@ -153,7 +153,7 @@ fun MapScreen(points: List<DropOffPoint>, onPointClick: (DropOffPoint) -> Unit) 
     ) {
         points.forEach { point ->
             Marker(
-                state = MarkerState(position = LatLng(point.latitude, point.longitude)),
+                state = MarkerState(position = point.location),
                 title = point.name,
                 snippet = point.anschrift,
                 onClick = {

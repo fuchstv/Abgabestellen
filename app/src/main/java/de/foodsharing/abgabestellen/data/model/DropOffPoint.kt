@@ -1,5 +1,7 @@
 package de.foodsharing.abgabestellen.data.model
 
+import com.google.android.gms.maps.model.LatLng
+
 data class DropOffPoint(
     val id: String = "", // Wird von Firestore generiert
     val name: String = "",
@@ -14,4 +16,6 @@ data class DropOffPoint(
     val bemerkungen: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0
-)
+) {
+    val location: LatLng = LatLng(latitude, longitude)
+}
